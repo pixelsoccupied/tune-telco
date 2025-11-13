@@ -19,7 +19,7 @@ This project demonstrates:
 
 ```bash
 # Run MCP demo (loads both base and fine-tuned models, shows comparison)
-uv run mcp/client.py
+make demo
 ```
 
 This will:
@@ -32,16 +32,30 @@ This will:
 
 ```bash
 # Configure training in train/config.yaml, then run:
-uv run train/train.py
+make train
 ```
 
 Training takes ~1 hour on Apple Silicon (M1/M2/M3) with ~5.5GB peak memory.
+
+### Available Make Commands
+
+```bash
+make demo       # Run the MCP demo (base vs fine-tuned comparison)
+make run        # Alias for demo
+make train      # Train the model using train/config.yaml
+make install    # Install dependencies using uv
+make clean      # Remove cache and generated JSONL files
+make clean-all  # Remove all training artifacts (adapters, data)
+make help       # Show available commands
+```
 
 ## Project Structure
 
 ```
 function-calling-agent/
 ├── README.md                # This file
+├── CLAUDE.md                # Guide for Claude Code instances
+├── Makefile                 # Convenient commands (demo, train, clean)
 ├── pyproject.toml           # Package dependencies
 ├── mcp/                     # MCP integration
 │   ├── server.py            # FastMCP server (2 real API tools)
@@ -276,7 +290,7 @@ parts = re.split(r'\n\n+(?=(?:USER:|ASSISTANT:|FUNCTION RESPONSE:))', chat)
 
 ```bash
 # Run demo (MCP server starts automatically)
-uv run mcp/client.py
+make demo
 ```
 
 ### Production Integration
@@ -305,7 +319,8 @@ The fine-tuned model + parser can integrate with:
 ### MCP Connection Issues
 
 - Ensure `uv` is installed: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Check server starts correctly: `uv run mcp_server.py`
+- The MCP server starts automatically when running `make demo`
+- Check server manually if needed: `uv run mcp/server.py`
 - Verify port availability
 
 ## Next Steps
