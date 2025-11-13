@@ -1,0 +1,97 @@
+# MLX LoRA Fine-tuning Configuration for Function Calling
+# Model: Qwen3-0.6B (NO native function calling - perfect for demo!)
+
+# Model Configuration
+model: "mlx-community/Qwen3-0.6B-4bit"
+fine_tune_type: lora
+
+# Training Configuration
+train: true
+test: false  # Disabled - takes 7+ hours for 1000 samples. Use demo_agent.py instead
+
+# Dataset
+# Note: We use custom data conversion, so this points to our converted files
+data: "data"
+
+# Training Hyperparameters
+iters: 2500                    # Training iterations (2x from 1200) upadted: 1000
+batch_size: 1                   # Actual batch size (memory optimization)
+grad_accumulation_steps: 4      # Effective batch size = 1 × 4 = 4
+learning_rate: 1e-5 #7             # Conservative for fine-tuning update: 1e-7
+seed: 0
+
+# Memory Optimizations
+grad_checkpoint: true           # Trade computation for memory (saves 30-50%)
+num_layers: 8                   # Trainable layers (out of 36 total)
+
+# Validation & Evaluation
+val_batches: 25                 # Number of validation batches per eval
+steps_per_eval: 200             # Validate every 200 iterations
+steps_per_report: 10            # Report loss every 10 iterations
+
+# Checkpointing
+adapter_path: "adapters"
+save_every: 100                 # Save checkpoint every 100 iterations
+resume_adapter_file: 0002500_adapters.safetensors       # Set to checkpoint path to resume training
+
+# Optimizer
+optimizer: adamw
+
+# LoRA Configuration
+# LoRA (Low-Rank Adaptation) adds small adapter matrices instead of full fine-tuning
+# This dramatically reduces trainable parameters while maintaining quality
+lora_parameters:
+  # keys: Specific weight matrices where LoRA adapters are applied
+  # - q_proj (Query): transforms input to query vectors in attention
+  # - k_proj (Key): transforms input to key vectors in attention
+  # - v_proj (Value): transforms input to value vectors in attention
+  # - o_proj (Output): projects attention output back
+  # Could also add "mlp.*" for feed-forward layers (more memory but more expressive)
+  keys: ["self_attn.q_proj", "self_attn.v_proj", "self_attn.k_proj", "self_attn.o_proj"]
+
+  # rank: The rank of low-rank decomposition (core LoRA concept)
+  # Instead of updating full matrix W, LoRA adds two small matrices A (d×r) and B (r×d)
+  # Lower rank (4) = fewer parameters, faster, less expressive
+  # Higher rank (16, 32) = more expressive, slower, more memory
+  # Rank 8 is a good balance for most tasks
+  rank: 8
+
+  # scale: Scaling factor (alpha) applied to LoRA updates
+  # Actual scaling = scale / rank = 20.0 / 8 = 2.5x
+  # Controls how much LoRA adapters influence the output
+  # Higher = stronger LoRA influence, more aggressive updates
+  # 20.0 is a typical default
+  scale: 20.0
+
+  # dropout: Dropout rate applied to LoRA layers during training
+  # 0.0 = no dropout (more stable, less regularization)
+  # 0.05-0.1 = some regularization if overfitting occurs
+  dropout: 0.0
+
+# Sequence Length
+max_seq_length: 2048            # Maximum tokens per example
+
+# Optional: Prompt Masking
+# Uncomment to only compute loss on assistant responses (not system/user prompts)
+# This can improve training quality by focusing learning on the actual outputs
+# mask_prompt: true
+
+# Optional: Learning Rate Schedule
+# Uncomment to enable cosine decay with warmup (often improves convergence)
+# lr_schedule:
+#   name: cosine_decay
+#   warmup: 100                 # Warmup steps
+#   warmup_init: 1e-7           # Initial warmup learning rate
+#   arguments: [1e-5, 2500, 1e-7]  # [max_lr, total_steps, min_lr]
+
+# Optional: Logging to Weights & Biases or SwanLab (uncomment to use)
+# First install: pip install wandb (or pip install swanlab)
+# report_to: wandb              # Options: wandb, swanlab, or "wandb,swanlab" for both
+# project_name: "function-calling-qwen-3b"
+
+# Training Results (for reference):
+# - Training time: 1h 7m 34s on Apple Silicon
+# - Peak memory: 5.556 GB
+# - Final train loss: 0.614
+# - Final validation loss: 0.626
+# - Success rate: 12/12 (100%)

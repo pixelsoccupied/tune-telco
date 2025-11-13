@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:spec.modelcontextprotocol.io)",
+      "mcp__github__get_file_contents",
+      "Bash(python -c \"import sys; sys.path.insert(0, ''''train''''); import train\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
